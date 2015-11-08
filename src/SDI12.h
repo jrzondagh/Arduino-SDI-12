@@ -49,13 +49,15 @@ class SDI12
 {
 private:
   static SDI12 *_activeObject;	// static pointer to active SDI12 instance
-  void setState(uint8_t state); // sets the state of the SDI12 objects
   void wakeSensors();			// used to wake up the SDI12 bus
-  void writeChar(uint8_t out); 	// used to send a char out on the data line
+  void waitMarking();		// JZ
+  void setState(uint8_t state); // sets the state of the SDI12 objects - JZ
+  void writeChar(uint8_t out); 	// used to send a char out on the data line - JZ
   void receiveChar();			// used by the ISR to grab a char from data line
   
 public:
   SDI12(uint8_t dataPin);		// constructor
+  SDI12(uint8_t dataPin, bool isSlave);		// constructor
   ~SDI12();						// destructor
   void begin();					// enable SDI-12 object
   void end();					// disable SDI-12 object

@@ -131,6 +131,8 @@ SDI12 *SDI12::_activeObject = NULL;		// 0.9 pointer to active SDI12 object
 uint8_t _dataPin; 						// 0.10 reference to the data pin
 bool _bufferOverflow;					// 0.11 buffer overflow status
 
+bool _isSlave;					//JZ
+
 /* =========== 1. Buffer Setup ============================================
 
 The buffer is used to store characters from the SDI-12 data line.
@@ -427,13 +429,33 @@ destructor, as it will maintain the memory buffer.
 */
 
 //	3.1	Constructor
-SDI12::SDI12(uint8_t dataPin){ _bufferOverflow = false; _dataPin = dataPin; }   
+SDI12::SDI12(uint8_t dataPin){ 
+  _bufferOverflow = false; 
+  _dataPin = dataPin; 
+  _isSlave = 0; 
+}
+   
+SDI12::SDI12(uint8_t dataPin, bool isSlave){
+  _bufferOverflow = false; 
+  _dataPin = dataPin; 
+  _isSlave = isSlave; 
+}   
 
 //	3.2	Destrutor
 SDI12::~SDI12(){ setState(DISABLED); }
 
 //  3.3 Begin
-void SDI12::begin() { setState(HOLDING); setActive(); }   
+void SDI12::begin() { 
+
+  setState(HOLDING); 
+  setActive(); 
+
+  if(_isSlave == 1){
+    setState(LISTENING); 
+  }
+
+}   
+
 
 //  3.4 End
 void SDI12::end() { setState(DISABLED); }
@@ -508,9 +530,11 @@ sends out a String byte by byte the command line.
 
 // 4.1 - this function wakes up the entire sensor bus
 void SDI12::wakeSensors(){
-  setState(TRANSMITTING); 
   digitalWrite(_dataPin, HIGH); 
   delayMicroseconds(12100); 
+}
+
+void SDI12::waitMarking(){
   digitalWrite(_dataPin, LOW); 
   delayMicroseconds(8400);
 }
@@ -540,10 +564,19 @@ void SDI12::writeChar(uint8_t out)
 
 //	4.3	- this function sends out the characters of the String cmd, one by one
 void SDI12::sendCommand(String cmd){
-  wakeSensors();							// wake up sensors
+
+  setState(TRANSMITTING); 
+
+  if(_isSlave == 0){
+    wakeSensors();							// wake up sensors if we are the master
+  }
+
+  waitMarking();
+
   for (int i = 0; i < cmd.length(); i++){
 	writeChar(cmd[i]); 						// write each characters
   }	
+
   setState(LISTENING); 						// listen for reply
 }
 
